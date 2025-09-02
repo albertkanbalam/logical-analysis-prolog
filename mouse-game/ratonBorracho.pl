@@ -1,0 +1,224 @@
+% -*- Mode: Prolog -*-
+
+% La representación de la posición será mediante pos(X, Y).
+
+% Comenzamos pasandole al predicado movimiento, la posición actual (X, Y), y Ea=0 (ebriedad anterior)
+solucion(M, N, Env, Ron, X, Y) :-
+	movimiento(M, N, Env, Ron , X, Y, _, _, 0, 1,1).
+	
+% El predicado ebriedad calcula la ebriedad actual del ratón, que es 5 cuando está en una posición
+% en donde hay un quedo con Ron, y es Eant-1 cuando no hay queso con Ron, donde Ea es la ebriedad anterior.
+% Los parámetros que se pasan son: Ron, lista de pos(X,Y), A, B, la posición actual, 
+% Eant, ebriedad anterior, y EAB, la ebriedad actual.
+ebriedad(Ron, A, B, _, 5, RonO) :-
+	pertenece(pos(A, B), Ron),
+	quitaQueso(Ron, pos(A, B), RonO),
+	nl, write('Comió un queso con ron.  '), nl,
+	write('Quedan menos quesos con ron: '), write(RonO), nl, nl, !.
+ebriedad(Ron, _, _, Eant, EAB, Ron) :- 
+	EAB is Eant-1.
+
+
+% Una opción de final es cuando gana, es decir, cuando ha llegado a la posición N-1, M-1.
+fin(N, M, _, _,  A, B, _) :- 
+	A is N-1,
+	B is M-1,
+	write('¡¡Lo logró!!. El ratoncillo llegó a la meta.'), 
+	nl.
+% Otra opción de final es cuandp muere, esdecir, cuando come un queso envenenado estando ebrio.
+fin(_, _, Env, Ron, A, B, Eant) :- 
+	pertenece(pos(A, B), Env),
+	ebriedad(Ron, A, B, Eant, E, _),
+	E > 0, 
+	nl, write('Oh no!!, ha comido un queso envenenado!'), nl,
+	write('No lo logró. El ratoncillo murió.'), 
+	nl.
+
+
+% Condiciones de movimiento.
+
+% Primero se verifica si en la posición actual se puede hacer fin(). En caso contrario se mueve.
+% Por convención usamos A, B, para referirnos a la posición 'actual' y X, Y para la posición 'destino'.
+movimiento(M, N, Env, Ron, A, B, _, _, Eant, _, _) :- 
+	fin(M, N, Env, Ron, A, B, Eant), !.
+% Si la ebriedad del ratón es mayor que cero entonces el ratón avanza en dirección alratoria.
+movimiento(M, N, Env, Ron, A, B, X, Y, Eant, DirH, DirV) :-
+	ebriedad(Ron, A, B, Eant, EAB, RonO),
+	EAB > 0,
+	avanceRandom(M, N, A, B, X, Y),
+	movimiento(M, N, Env, RonO, X, Y, _, _, EAB, DirH, DirV), !.
+% Si la ebriedad del ratón es menor o igual a cero entonces avanza normalmente.
+movimiento(M, N, Env, Ron, A, B, X, Y, Eant, DirH, DirV) :-
+	ebriedad(Ron, A, B, Eant, EAB, RonO),
+	EAB =< 0,
+	cambiaDireccion(M, N, A, B, DirH, DirV, H1, V1),
+	avanceNormal(N, A, B, X, Y, DirH, DirV),
+	movimiento(M, N, Env, RonO, X, Y, _, _, EAB, H1, V1), !.
+
+% Cada que el ratón avanza lo puede hacer en las cuatro direcciones siguientes, y en cada caso
+% se imprime un mensaje del movimiento.
+derecha(A, B, X, Y) :- 
+	Y is B+1,
+	X is A,
+	write('El roedor ebrio se movió hacia la derecha,.. de la '), write(pos(A, B)), 
+	write(' a la '), write(pos(X, Y)), write('.'), nl.
+
+izquierda(A, B, X, Y) :- 
+	Y is B-1,
+	X is A,
+	write('El roedor ebrio se movió hacia la izquierda, de la '), write(pos(A, B)), 
+	write(' a la '), write(pos(X, Y)), write('.'), nl.
+
+abajo(A, B, X, Y) :- 
+	X is A+1,
+	Y is B,
+	write('El roedor ebrio se movió hacia abajo,....... de la '), write(pos(A, B)), 
+	write(' a la '), write(pos(X, Y)), write('.'), nl.
+
+arriba(A, B, X, Y) :- 
+	X is A -1,
+	Y is B,
+	write('El roedor ebrio se movió hacia arriba,...... de la '), write(pos(A, B)), 
+	write(' a la '), write(pos(X, Y)), write('.'), nl.
+
+
+% El avance normal del ratón depende de su dirección y de su posición en las columnas,
+% Los parámetros de dirección son: DirH, dirección horizontal, que puede valer 1 ó -1 
+% si camina a la derecha ó a la izquierda respectivamente;
+% y  DirV, dirección vertical, que puede valer 1 ó -1 si camina abajo ó arriba respectivamente.
+
+avanceNormal(_, A, B, X, Y, DirH, DirV) :-
+	B is 0,
+	DirH is -1,
+	X is  A + DirV,
+	Y is B, 
+	write('Avanza sobrio.  '),
+	write('El roedor se movió de la '), 
+	write(pos(A, B)), 
+	write(' a la '), 
+	write(pos(X, Y)), 
+	write('.'), nl, !.
+avanceNormal(N, A, B, X, Y, DirH, DirV) :-
+	B is N-1,
+	DirH is 1,
+	X is A + DirV,
+	Y is B,
+	write('Avanza sobrio.  '),
+	write('El roedor se movió de la '), 
+	write(pos(A, B)), 
+	write(' a la '), 
+	write(pos(X, Y)), 
+	write('.'), nl, !.
+avanceNormal(N, A, B, X, Y, DirH, _) :-
+	0 =< B,
+	B < N,
+	X is A,
+	Y is B + DirH,
+	write('Avanza sobrio.  '),
+	write('El roedor se movió de la '), 
+	write(pos(A, B)), 
+	write(' a la '), 
+	write(pos(X, Y)), 
+	write('.'), nl, !.
+	
+% Predicados para cambiar dirección.
+cambiaDireccion(_, _, _, B, HI, VI, HO, VI) :-
+	B is 0,
+	HI is -1,
+	HO is (-1)*HI.
+cambiaDireccion(_, N, _, B, HI, VI, HO, VI) :-
+	B is N-1,
+	HI is 1,
+	HO is (-1)*HI.
+cambiaDireccion(_, _, A, _, HI, VI, HI, VO) :-
+	A is 0,
+	VI is -1,
+	VO is (-1)*VI.
+cambiaDireccion(M, _, A, _, HI, VI, HI, VO) :-
+	A is M-1,
+	VI is 1,
+	VO is (-1)*VI, !.
+cambiaDireccion(_, _, _, _, HI, VI, HO, VO) :-
+	HO is HI,
+	VO is VI.
+
+% El predicado avanceRandom recibe los puntos actual (A, B) y destino (X, Y), 
+% y el tamaño de la matriz
+% Primero hace una sutil verificación: 
+% el caso en que el laberinto es de Mx1 ó de 1xN.
+avanceRandom(_, N, A, B, X, Y) :-
+	N is 1,
+	B is 0,
+	R is random(2),
+	avanceAux(A, B, X, Y, 2, 4, _, _, R).
+avanceRandom(M, _, A, B, X, Y) :-
+	M is 1,
+	A is 0,
+	R is random(2),
+	avanceAux(A, B, X, Y, 1, 3, _, _, R). 
+% Si está en la esquina (0,0)
+avanceRandom(_, _, A, B, X, Y) :-
+	A is 0,
+	B is 0,
+	R is random(2), % solo se puede mover en dos direcciones.
+	avanceAux(A, B, X, Y, 1, 2, _, _, R). % a la derecha ó hacia abajo.
+% Si está en la esquina (0, N-1)
+avanceRandom(_, N, A, B, X, Y) :-
+	A is 0,
+	B is N-1,
+	R is random(2),
+	avanceAux(A, B, X, Y, 2, 3, _, _, R).
+avanceRandom(M, _, A, B, X, Y) :-
+	A is M-1, 
+	B is 0,
+	R is random(2),
+	avanceAux(A, B, X, Y, 1, 4, _, _, R).
+avanceRandom(_, _, A, B, X, Y) :-
+	A is 0,
+	R is random(3),
+	avanceAux(A, B, X, Y, 1, 2, 3, _, R).
+avanceRandom(M, _, A, B, X, Y) :-
+	A is M-1,
+	R is random(3),
+	avanceAux(A, B, X, Y, 1, 4, 3, _, R).
+avanceRandom(_, N, A, B, X, Y) :-
+	B is N-1,
+	R is random(3),
+	avanceAux(A, B, X, Y, 4, 2, 3, _, R).
+avanceRandom(_, _, A, B, X, Y) :-
+	B is 0,
+	R is random(3),
+	avanceAux(A, B, X, Y, 4, 1, 2, _, R).
+avanceRandom(_, _, A, B, X, Y) :-
+	R is random(4),
+	avanceAux(A, B, X, Y, 1, 2, 3, 4, R).
+
+avanceAux(A, B, X, Y, O, _, _, _, R) :- 
+	R is 0,
+	direccion(O, A, B, X, Y).
+avanceAux(A, B, X, Y, _, P, _, _, R) :-
+	R is 1,
+	direccion(P, A, B, X, Y).
+avanceAux(A, B, X, Y, _, _, Q, _, R) :-
+	R is 2,
+	direccion(Q, A, B, X, Y).
+avanceAux(A, B, X, Y, _, _, _, S, R) :-
+	R is 3,
+	direccion(S, A, B, X, Y).
+
+direccion(1, A, B, X, Y):-
+	derecha(A, B, X, Y).
+direccion(2, A, B, X, Y) :-
+	abajo(A, B, X, Y).
+direccion(3, A, B, X, Y) :-
+	izquierda(A, B, X, Y).
+direccion(4, A, B, X, Y) :-
+	arriba(A, B, X, Y).
+
+quitaQueso([pos(X, Y)|T], pos(X, Y),  T) :- !.
+quitaQueso([pos(X, Y)|T], pos(X1, Y1), [pos(X, Y)|TT]) :- 
+	quitaQueso(T, pos(X1, Y1), TT).
+
+pertenece(X, [X|_]).
+pertenece(X, [_|T]) :- pertenece(X, T).
+
